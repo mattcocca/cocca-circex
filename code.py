@@ -4,6 +4,8 @@ import adafruit_thermistor
 import digitalio
 import analogio
 import time
+import adafruit_lis3dh
+import busio
 
 from digitalio import DigitalInOut, Direction, Pull
 
@@ -26,6 +28,8 @@ def init_thermistor():
 if __name__ == "__main__":
     led = DigitalInOut(board.LED)
     led.direction = digitalio.Direction.OUTPUT
+    i2c = busio.I2C(board.ACCELEROMETER_SCL, board.ACCELEROMETER_SDA)
+    lis3dh = adafruit_lis3dh.LIS3DH_I2C(i2c, address=0x19)
     light = analogio.AnalogIn(board.A8)
     thermistor = init_thermistor()
     MODE_LIST = ["TEMP", "GYRO", "SOUND", "LIGHT"]
@@ -44,11 +48,14 @@ if __name__ == "__main__":
             if MODE_LIST[mode_current] == "TEMP":
                 celsius = thermistor.temperature
                 fahrenheit = (celsius * 9 / 5) + 32
-                print("\033[K== Temperature ==\n\033[K{} *C\n\033[K{} *F".format(celsius, fahrenheit))
+                print("\033[K{} *C\n\033[K{} *F".format(celsius, fahrenheit))
             elif MODE_LIST[mode_current] == "LIGHT":
-                print("\033[K== Light ==\n\033[K" + str(light.value) + "\n\033[K")
+                print("\033[K" + str(light.value) + "\n\033[K")
+            elif MODE_LIST[mode_current] == "GYRO":
+                x, y, z = [value / adafruit_lis3dh.STANDARD_GRAVITY for value in lis3dh.acceleration]
+                print("\033[Kx = %0.3f G, y = %0.3f G, z = %0.3f G\n\033[K" % (x, y, z))
             else:
-                print("\033[KFunction not yet implemented\n\033[K\n\033[K")
+                print("\033[KFunction not yet implemented\n\033[K")
         else:
-            print("\033[KPress B to start recording\n\033[K\n\033[K")
-        print("\033[F\033[F\033[F\033[F") # TODO: Support variable number of output lines
+            print("\033[KPress B to start recording\n\033[K")
+        print("\033[F\033[F\033[F") # TODO: Support variable number of output lines
