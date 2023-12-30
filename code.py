@@ -25,37 +25,73 @@ def init_thermistor():
     return thermistor
 
 
-if __name__ == "__main__":
-    led = DigitalInOut(board.LED)
-    led.direction = digitalio.Direction.OUTPUT
+def init_accel():
+    """Return an accelerometer object that can be queried for X/Y/Z accelerations"""
     i2c = busio.I2C(board.ACCELEROMETER_SCL, board.ACCELEROMETER_SDA)
     lis3dh = adafruit_lis3dh.LIS3DH_I2C(i2c, address=0x19)
+
+    return lis3dh
+
+
+class button:
+    def __init__(self, in_pin):
+        self.button_counter = countio.Counter(in_pin, edge=countio.Edge.RISE, pull=Pull.DOWN)
+        self.last_pressed_time = 0
+        self.last_pressed_count = 0
+
+    def pressed(self):
+        pressed = False
+        if self.button_counter.count > self.last_pressed_count:
+            self.last_pressed_time = time.monotonic()
+            self.last_pressed_count = self.button_counter.count
+            pressed = True
+        return pressed
+
+
+def rwd_lines(lines):
+    # TODO: Support variable number of output lines
+    print("\033[2K\033[F"*(lines+1))
+
+
+if __name__ == "__main__":
+    MODE_LIST = ["TEMP", "GYRO", "SOUND", "LIGHT"]
+
+
+    mode_current=0
+    record_state = False
+    
+    a_button = button(board.D4)
+    b_button = button(board.D5)
+
     light = analogio.AnalogIn(board.A8)
     thermistor = init_thermistor()
-    MODE_LIST = ["TEMP", "GYRO", "SOUND", "LIGHT"]
-    mode_current=0
-    mode_counter = countio.Counter(board.D4, edge=countio.Edge.RISE, pull=Pull.DOWN)
-    record_state=0
-    record_counter = countio.Counter(board.D5, edge=countio.Edge.RISE, pull=Pull.DOWN)
-    record_state = False
+    accel = init_accel()
+
     print("\033[?25l")
-    print("Mode: " + MODE_LIST[mode_current])
+    print("Mode: " + MODE_LIST[mode_current] + "\n\n\n")
     while True:
-        if (mode_counter.count % len(MODE_LIST)) != mode_current: # TODO: Debounce better (maybe based on time since last change)
-            mode_current = mode_counter.count % len(MODE_LIST)
-            print("\033[F\033[KMode: " + MODE_LIST[mode_current])
-        if record_counter.count%2 != 0:
+        if (a_button.pressed()): 
+            mode_current = (mode_current + 1) % len(MODE_LIST)
+            rwd_lines(4)
+            print("Mode: " + MODE_LIST[mode_current] + "\n\n\n")
+        if (b_button.pressed()):
+            record_state = ~record_state
+
+        if record_state:
+            rwd_lines(3)
             if MODE_LIST[mode_current] == "TEMP":
                 celsius = thermistor.temperature
                 fahrenheit = (celsius * 9 / 5) + 32
-                print("\033[K{} *C\n\033[K{} *F".format(celsius, fahrenheit))
+                print("{} *C\n{} *F\n"
+                     .format(celsius, fahrenheit))
             elif MODE_LIST[mode_current] == "LIGHT":
-                print("\033[K" + str(light.value) + "\n\033[K")
+                print(str(light.value) + "\n\n")
             elif MODE_LIST[mode_current] == "GYRO":
-                x, y, z = [value / adafruit_lis3dh.STANDARD_GRAVITY for value in lis3dh.acceleration]
-                print("\033[Kx = %0.3f G, y = %0.3f G, z = %0.3f G\n\033[K" % (x, y, z))
+                x, y, z = [value / adafruit_lis3dh.STANDARD_GRAVITY 
+                    for value in accel.acceleration]
+                print("x = %0.2f G\ny = %0.2f G\nz = %0.2f G" % (x, y, z))
             else:
-                print("\033[KFunction not yet implemented\n\033[K")
+                print("Function not yet implemented\n\n")
         else:
-            print("\033[KPress B to start recording\n\033[K")
-        print("\033[F\033[F\033[F") # TODO: Support variable number of output lines
+            rwd_lines(3)
+            print("Press B to start recording\n\n")
