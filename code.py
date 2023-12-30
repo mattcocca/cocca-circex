@@ -9,6 +9,7 @@ import busio
 
 from digitalio import DigitalInOut, Direction, Pull
 
+DEBUG = False
 
 def init_thermistor():
     """Return a thermistor object that can be queried for the temperature"""
@@ -41,22 +42,27 @@ class button:
 
     def pressed(self):
         pressed = False
+        current_time = time.monotonic()
         if self.button_counter.count > self.last_pressed_count:
-            self.last_pressed_time = time.monotonic()
+            if DEBUG:
+                print("DEBUG: %0.3f, %0.3f" % (self.last_pressed_time,
+                                                 current_time))
+            if self.last_pressed_time + .250 < current_time:
+
+                pressed = True
+            self.last_pressed_time = current_time
             self.last_pressed_count = self.button_counter.count
-            pressed = True
         return pressed
 
 
 def rwd_lines(lines):
     # TODO: Support variable number of output lines
-    print("\033[2K\033[F"*(lines+1))
+    if not DEBUG:
+        print("\033[2K\033[F"*(lines+1))
 
 
 if __name__ == "__main__":
     MODE_LIST = ["TEMP", "GYRO", "SOUND", "LIGHT"]
-
-
     mode_current=0
     record_state = False
     
@@ -74,24 +80,32 @@ if __name__ == "__main__":
             mode_current = (mode_current + 1) % len(MODE_LIST)
             rwd_lines(4)
             print("Mode: " + MODE_LIST[mode_current] + "\n\n\n")
+
         if (b_button.pressed()):
             record_state = ~record_state
 
         if record_state:
             rwd_lines(3)
+
             if MODE_LIST[mode_current] == "TEMP":
                 celsius = thermistor.temperature
                 fahrenheit = (celsius * 9 / 5) + 32
-                print("{} *C\n{} *F\n"
-                     .format(celsius, fahrenheit))
+                print("{: .3f} *C\n{: .3f} *F\n"
+                        .format(celsius, fahrenheit))
+
             elif MODE_LIST[mode_current] == "LIGHT":
                 print(str(light.value) + "\n\n")
+
             elif MODE_LIST[mode_current] == "GYRO":
                 x, y, z = [value / adafruit_lis3dh.STANDARD_GRAVITY 
                     for value in accel.acceleration]
-                print("x = %0.2f G\ny = %0.2f G\nz = %0.2f G" % (x, y, z))
+                print("x = {: .3f} G\ny = {: .3f} G\nz = {: .3f} G"
+                        .format(x,y,z))
+
             else:
                 print("Function not yet implemented\n\n")
+
         else:
             rwd_lines(3)
             print("Press B to start recording\n\n")
+        time.sleep(0.1)
