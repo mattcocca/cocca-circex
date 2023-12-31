@@ -6,13 +6,13 @@ import analogio
 import time
 import adafruit_lis3dh
 import busio
-
 from digitalio import DigitalInOut, Direction, Pull
 
 DEBUG = False
 
 def init_thermistor():
-    """Return a thermistor object that can be queried for the temperature"""
+    """Return a thermistor object that can be queried for the 
+    temperature"""
     pin = board.TEMPERATURE
     resistor = 10000
     resistance = 10000
@@ -27,7 +27,8 @@ def init_thermistor():
 
 
 def init_accel():
-    """Return an accelerometer object that can be queried for X/Y/Z accelerations"""
+    """Return an accelerometer object that can be queried for X/Y/Z 
+    accelerations"""
     i2c = busio.I2C(board.ACCELEROMETER_SCL, board.ACCELEROMETER_SDA)
     lis3dh = adafruit_lis3dh.LIS3DH_I2C(i2c, address=0x19)
 
@@ -36,7 +37,9 @@ def init_accel():
 
 class button:
     def __init__(self, in_pin):
-        self.button_counter = countio.Counter(in_pin, edge=countio.Edge.RISE, pull=Pull.DOWN)
+        self.button_counter = countio.Counter(in_pin, 
+                                                edge=countio.Edge.RISE,
+                                                pull=Pull.DOWN)
         self.last_pressed_time = 0
         self.last_pressed_count = 0
 
@@ -55,6 +58,26 @@ class button:
         return pressed
 
 
+class Sensor:
+    def __init__(self):
+        raise NotImplementedError
+    def read_sensor():
+        raise NotImplementedError
+    def serial_display():
+        raise NotImplementedError
+    def cpx_neopixel_display():
+        raise NotImplementedError
+    
+class LightSensor(Sensor):
+    def __init__(self, pin):
+        self.light = analogio.AnalogIn(pin)
+        self.value = 0
+    def read_sensor():
+        self.value = self.light.value
+    def serial_display():
+        print(str(self.value) + "\n\n")
+        
+
 def rwd_lines(lines):
     # TODO: Support variable number of output lines
     if not DEBUG:
@@ -62,6 +85,7 @@ def rwd_lines(lines):
 
 
 if __name__ == "__main__":
+    MODE_DICT = {"LIGHT": LightSensor(board.A8)}
     MODE_LIST = ["TEMP", "GYRO", "SOUND", "LIGHT"]
     mode_current=0
     record_state = False
