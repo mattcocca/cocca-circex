@@ -61,9 +61,10 @@ def rwd_lines(lines):
     if not DEBUG:
         print("\033[2K\033[F"*(lines+1))
 
-
+#---------------------------------------------------------------
+# Program starts here
 if __name__ == "__main__":
-    MODE_LIST = ["TEMP", "GYRO", "SOUND", "LIGHT"]
+    MODE_LIST = ["TEMP", "GYRO", "SOUND", "LIGHT", "MICROPHONE"]
     mode_current=0
     record_state = False
 
