@@ -9,6 +9,7 @@ import busio
 
 from digitalio import DigitalInOut, Direction, Pull
 
+# Dave was here
 DEBUG = False
 
 def init_thermistor():
@@ -65,7 +66,7 @@ if __name__ == "__main__":
     MODE_LIST = ["TEMP", "GYRO", "SOUND", "LIGHT"]
     mode_current=0
     record_state = False
-    
+
     a_button = button(board.D4)
     b_button = button(board.D5)
 
@@ -76,7 +77,7 @@ if __name__ == "__main__":
     print("\033[?25l")
     print("Mode: " + MODE_LIST[mode_current] + "\n\n\n")
     while True:
-        if (a_button.pressed()): 
+        if (a_button.pressed()):
             mode_current = (mode_current + 1) % len(MODE_LIST)
             rwd_lines(4)
             print("Mode: " + MODE_LIST[mode_current] + "\n\n\n")
@@ -97,7 +98,7 @@ if __name__ == "__main__":
                 print(str(light.value) + "\n\n")
 
             elif MODE_LIST[mode_current] == "GYRO":
-                x, y, z = [value / adafruit_lis3dh.STANDARD_GRAVITY 
+                x, y, z = [value / adafruit_lis3dh.STANDARD_GRAVITY
                     for value in accel.acceleration]
                 print("x = {: .3f} G\ny = {: .3f} G\nz = {: .3f} G"
                         .format(x,y,z))
