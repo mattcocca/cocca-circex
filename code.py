@@ -6,6 +6,9 @@ import analogio
 import time
 import adafruit_lis3dh
 import busio
+import math
+
+from neopixel import NeoPixel
 from digitalio import DigitalInOut, Direction, Pull
 
 DEBUG = False
@@ -50,20 +53,20 @@ class button:
 
 
 class Sensor:
-    def __init__(self, name):
+    def __init__(self, name, pixels):
         self.name = name
     def read_sensor(self):
         pass
     def serial_display(self):
         print("Function not yet implemented.\n\n")
     def cpx_neopixel_display(self):
-        raise NotImplementedError
+        pixels[:] = [0x000000] * len(pixels)
     
 
 class LightSensor(Sensor):
-    def __init__(self, pin):
+    def __init__(self, pixels):
         self.name = "LIGHT"
-        self.light = analogio.AnalogIn(pin)
+        self.light = analogio.AnalogIn(board.A8)
         self.value = 0
     def read_sensor(self):
         self.value = self.light.value
@@ -72,7 +75,7 @@ class LightSensor(Sensor):
         
 
 class TempSensor(Sensor):
-    def __init__(self):
+    def __init__(self, pixels):
         self.name = "TEMP"
         pin = board.TEMPERATURE
         resistor = 10000
@@ -91,8 +94,9 @@ class TempSensor(Sensor):
                                                 fahrenheit))
 
 class AccelSensor(Sensor):
-    def __init__(self):
+    def __init__(self, pixels):
         self.name = "ACCEL"
+        self.pixels = pixels
         i2c = busio.I2C(board.ACCELEROMETER_SCL,
                         board.ACCELEROMETER_SDA)
         self.lis3dh = adafruit_lis3dh.LIS3DH_I2C(i2c, address=0x19)
@@ -108,6 +112,23 @@ class AccelSensor(Sensor):
                                                                 self.y,
                                                                 self.z))
 
+    def cpx_neopixel_display(self):
+        """atan2 eqn from figure 7 of
+           https://www.digikey.com/en/articles/using-an-accelerometer-for-inclination-sensing"""
+        point_dir = (math.atan2(self.x, self.y)-math.pi)*-1.91
+        pixels.brightness = round((1-abs(self.z))*.05, 2)+.01
+        if 0.5 < point_dir < 5.49:
+            point_pxl = round(point_dir-1)
+        elif 6.5 < point_dir < 11.49:
+            point_pxl = round(point_dir-2)
+        else:
+            return
+        if point_pxl != 0:
+            pixels[:point_pxl] = [0x000000] * (point_pxl)
+        pixels[point_pxl+1:] = [0x000000] * (len(pixels)-(point_pxl+1))
+        pixels[point_pxl] = 0xFFFFFF
+        
+
 def rwd_lines(lines):
     # TODO: Support variable number of output lines
     if not DEBUG:
@@ -115,11 +136,13 @@ def rwd_lines(lines):
 
 
 if __name__ == "__main__":
+    pixels = NeoPixel(board.NEOPIXEL, 10, brightness=.01)
+
     MODE_LIST = [
-                TempSensor(),
-                LightSensor(board.A8),
-                AccelSensor(),
-                Sensor("SOUND")
+                TempSensor(pixels),
+                LightSensor(pixels),
+                AccelSensor(pixels),
+                Sensor("SOUND", pixels)
                 ]
 
     mode_current=0
@@ -144,7 +167,9 @@ if __name__ == "__main__":
         
             MODE_LIST[mode_current].read_sensor()
             MODE_LIST[mode_current].serial_display()
+            MODE_LIST[mode_current].cpx_neopixel_display()
         else:
             rwd_lines(3)
+            pixels[:] = [0x000000] * len(pixels)
             print("Press B to start recording\n\n")
         time.sleep(0.1)
