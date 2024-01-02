@@ -29,7 +29,7 @@ def init_accel():
     return lis3dh
 
 
-class button:
+class Button:
     def __init__(self, in_pin):
         self.button_counter = countio.Counter(in_pin, 
                                                 edge=countio.Edge.RISE,
@@ -145,15 +145,21 @@ if __name__ == "__main__":
                 Sensor("SOUND", pixels)
                 ]
 
-    mode_current=0
+    mode_current = 0
     record_state = False
+    last_disp = 0
     
-    a_button = button(board.D4)
-    b_button = button(board.D5)
+    a_button = Button(board.D4)
+    b_button = Button(board.D5)
 
     print("\033[?25l")
     print("Mode: " + MODE_LIST[mode_current].name + "\n\n\n")
     while True:
+        disp_cycle = False
+        current_time =  time.monotonic()
+        if last_disp + 0.1 < current_time:
+            disp_cycle = True
+            last_disp = current_time
         if (a_button.pressed()): 
             mode_current = (mode_current + 1) % len(MODE_LIST)
             rwd_lines(4)
@@ -163,13 +169,14 @@ if __name__ == "__main__":
             record_state = ~record_state
 
         if record_state:
-            rwd_lines(3)
-        
             MODE_LIST[mode_current].read_sensor()
-            MODE_LIST[mode_current].serial_display()
-            MODE_LIST[mode_current].cpx_neopixel_display()
+            current_time =  time.monotonic()
+            if disp_cycle:
+                rwd_lines(3)
+                MODE_LIST[mode_current].serial_display()
+                MODE_LIST[mode_current].cpx_neopixel_display()
         else:
-            rwd_lines(3)
             pixels[:] = [0x000000] * len(pixels)
-            print("Press B to start recording\n\n")
-        time.sleep(0.1)
+            if disp_cycle:
+                rwd_lines(3)
+                print("Press B to start recording\n\n")
