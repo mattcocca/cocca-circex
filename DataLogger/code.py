@@ -1,7 +1,6 @@
 import board
 import countio
 import adafruit_thermistor
-import digitalio
 import analogio
 import time
 import adafruit_lis3dh
@@ -41,12 +40,20 @@ class Button:
 class Sensor:
     def __init__(self, name):
         self.name = name
+
     def read_sensor(self):
         pass
+
     def serial_display(self):
+        """Print serial info, return number of lines printed 
+        for interactive displays"""
         print("Function not yet implemented")
         return 1
+
     def cpx_neopixel_display(self, pixels):
+        pixels[:] = [0x000000] * len(pixels)
+
+    def cpx_neopixel_indicator(self, pixels):
         pixels[:] = [0x000000] * len(pixels)
     
 
@@ -55,12 +62,17 @@ class LightSensor(Sensor):
         self.name = "LIGHT"
         self.light = analogio.AnalogIn(board.A8)
         self.value = 0
+
     def read_sensor(self):
         self.value = self.light.value
+
     def serial_display(self):
         print(str(self.value))
         return 1
-        
+
+    def cpx_neopixel_indicator(self,pixels):
+        pixels[:] = [0x000000] * len(pixels)
+        pixels[1] = 0xFFFFFF
 
 class TempSensor(Sensor):
     def __init__(self):
@@ -74,13 +86,30 @@ class TempSensor(Sensor):
         self.thermistor = adafruit_thermistor.Thermistor(
             pin, resistor, resistance, nominal_temp, b_coefficient
         )
+
     def read_sensor(self):
         self.celsius = self.thermistor.temperature
+
     def serial_display(self):
         fahrenheit = (self.celsius * 9 / 5) + 32
         print("{: .3f} *C\n{: .3f} *F".format(self.celsius,
                                                 fahrenheit))
         return 2
+
+    def cpx_neopixel_display(self, pixels):
+        pass
+        # Any more code is causing memory allocation errors :(
+#        pixels[:] = [0x000000] * len(pixels)
+#        on_leds = self.celsius / (50/12)
+#        ndx = 0
+#        while ndx < len(pixels):
+#            ndx = ndx + 1
+#            if on_leds > ndx:
+#                pixels[ndx] =  0xFFFFFF
+ 
+    def cpx_neopixel_indicator(self, pixels):
+        pixels[:] = [0x000000] * len(pixels)
+        pixels[8] = 0xFFFFFF
 
 class AccelSensor(Sensor):
     def __init__(self):
@@ -117,6 +146,14 @@ class AccelSensor(Sensor):
         pixels[point_pxl+1:] = [0x000000] * (len(pixels)-(point_pxl+1))
         pixels[point_pxl] = 0xFFFFFF
         
+    def cpx_neopixel_indicator(self,pixels):
+        pixels[:] = [0x000000] * len(pixels)
+        pixels[0] = 0xFFFFFF
+        pixels[2] = 0xFFFFFF
+        pixels[4] = 0xFFFFFF
+        pixels[5] = 0xFFFFFF
+        pixels[7] = 0xFFFFFF
+        pixels[9] = 0xFFFFFF
 
 def rwd_lines(lines):
     if not DEBUG:
@@ -140,6 +177,8 @@ if __name__ == "__main__":
     
     a_button = Button(board.D4)
     b_button = Button(board.D5)
+    record_led = DigitalInOut(board.LED)
+    record_led.switch_to_output()
 
     print("\033[?25l", end="")
     print("\nMode: " + MODE_LIST[mode_current].name + "\n\n")
@@ -149,15 +188,18 @@ if __name__ == "__main__":
         if last_disp + 0.1 < current_time:
             disp_cycle = True
             last_disp = current_time
-        if (a_button.pressed()): 
-            mode_current = (mode_current + 1) % len(MODE_LIST)
-            rwd_lines(sense_outlines + 4)
-            print("\nMode: " + MODE_LIST[mode_current].name + "\n\n"
-                    + "\n"*sense_outlines)
+        if (a_button.pressed()):
+            if not record_state:
+                mode_current = (mode_current + 1) % len(MODE_LIST)
+                rwd_lines(sense_outlines + 4)
+                print("\nMode: " + MODE_LIST[mode_current].name + "\n\n"
+                        + "\n"*sense_outlines)
+                pixels.brightness = 0.01
+                MODE_LIST[mode_current].cpx_neopixel_indicator(pixels)
 
         if (b_button.pressed()):
             record_state = ~record_state
-
+            record_led.value = record_state
         if record_state:
             MODE_LIST[mode_current].read_sensor()
             current_time =  time.monotonic()
@@ -166,7 +208,7 @@ if __name__ == "__main__":
                 sense_outlines = MODE_LIST[mode_current].serial_display()
                 MODE_LIST[mode_current].cpx_neopixel_display(pixels)
         else:
-            pixels[:] = [0x000000] * len(pixels)
+            MODE_LIST[mode_current].cpx_neopixel_indicator(pixels)
             if disp_cycle:
                 rwd_lines(sense_outlines)
                 print("Press B to start recording")
