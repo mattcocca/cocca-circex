@@ -11,22 +11,8 @@ import math
 from neopixel import NeoPixel
 from digitalio import DigitalInOut, Direction, Pull
 
+
 DEBUG = False
-
-def init_thermistor():
-    """Return a thermistor object that can be queried for the 
-    temperature"""
-
-    return thermistor
-
-
-def init_accel():
-    """Return an accelerometer object that can be queried for X/Y/Z 
-    accelerations"""
-    i2c = busio.I2C(board.ACCELEROMETER_SCL, board.ACCELEROMETER_SDA)
-    lis3dh = adafruit_lis3dh.LIS3DH_I2C(i2c, address=0x19)
-
-    return lis3dh
 
 
 class Button:
@@ -53,29 +39,31 @@ class Button:
 
 
 class Sensor:
-    def __init__(self, name, pixels):
+    def __init__(self, name):
         self.name = name
     def read_sensor(self):
         pass
     def serial_display(self):
-        print("Function not yet implemented.\n\n")
-    def cpx_neopixel_display(self):
+        print("Function not yet implemented")
+        return 1
+    def cpx_neopixel_display(self, pixels):
         pixels[:] = [0x000000] * len(pixels)
     
 
 class LightSensor(Sensor):
-    def __init__(self, pixels):
+    def __init__(self):
         self.name = "LIGHT"
         self.light = analogio.AnalogIn(board.A8)
         self.value = 0
     def read_sensor(self):
         self.value = self.light.value
     def serial_display(self):
-        print(str(self.value) + "\n\n")
+        print(str(self.value))
+        return 1
         
 
 class TempSensor(Sensor):
-    def __init__(self, pixels):
+    def __init__(self):
         self.name = "TEMP"
         pin = board.TEMPERATURE
         resistor = 10000
@@ -90,13 +78,13 @@ class TempSensor(Sensor):
         self.celsius = self.thermistor.temperature
     def serial_display(self):
         fahrenheit = (self.celsius * 9 / 5) + 32
-        print("{: .3f} *C\n{: .3f} *F\n".format(self.celsius,
+        print("{: .3f} *C\n{: .3f} *F".format(self.celsius,
                                                 fahrenheit))
+        return 2
 
 class AccelSensor(Sensor):
-    def __init__(self, pixels):
+    def __init__(self):
         self.name = "ACCEL"
-        self.pixels = pixels
         i2c = busio.I2C(board.ACCELEROMETER_SCL,
                         board.ACCELEROMETER_SDA)
         self.lis3dh = adafruit_lis3dh.LIS3DH_I2C(i2c, address=0x19)
@@ -111,8 +99,9 @@ class AccelSensor(Sensor):
                                                                 self.x,
                                                                 self.y,
                                                                 self.z))
+        return 3
 
-    def cpx_neopixel_display(self):
+    def cpx_neopixel_display(self, pixels):
         """atan2 eqn from figure 7 of
            https://www.digikey.com/en/articles/using-an-accelerometer-for-inclination-sensing"""
         point_dir = (math.atan2(self.x, self.y)-math.pi)*-1.91
@@ -130,30 +119,30 @@ class AccelSensor(Sensor):
         
 
 def rwd_lines(lines):
-    # TODO: Support variable number of output lines
     if not DEBUG:
-        print("\033[2K\033[F"*(lines+1))
+        print("\033[F\033[K\n" + "\033[2K\033[F"*(lines),end="")
 
 
 if __name__ == "__main__":
     pixels = NeoPixel(board.NEOPIXEL, 10, brightness=.01)
 
     MODE_LIST = [
-                TempSensor(pixels),
-                LightSensor(pixels),
-                AccelSensor(pixels),
-                Sensor("SOUND", pixels)
+                TempSensor(),
+                LightSensor(),
+                AccelSensor(),
+                Sensor("SOUND")
                 ]
 
     mode_current = 0
     record_state = False
     last_disp = 0
+    sense_outlines = 0
     
     a_button = Button(board.D4)
     b_button = Button(board.D5)
 
-    print("\033[?25l")
-    print("Mode: " + MODE_LIST[mode_current].name + "\n\n\n")
+    print("\033[?25l", end="")
+    print("\nMode: " + MODE_LIST[mode_current].name + "\n\n")
     while True:
         disp_cycle = False
         current_time =  time.monotonic()
@@ -162,8 +151,9 @@ if __name__ == "__main__":
             last_disp = current_time
         if (a_button.pressed()): 
             mode_current = (mode_current + 1) % len(MODE_LIST)
-            rwd_lines(4)
-            print("Mode: " + MODE_LIST[mode_current].name + "\n\n\n")
+            rwd_lines(sense_outlines + 4)
+            print("\nMode: " + MODE_LIST[mode_current].name + "\n\n"
+                    + "\n"*sense_outlines)
 
         if (b_button.pressed()):
             record_state = ~record_state
@@ -172,11 +162,12 @@ if __name__ == "__main__":
             MODE_LIST[mode_current].read_sensor()
             current_time =  time.monotonic()
             if disp_cycle:
-                rwd_lines(3)
-                MODE_LIST[mode_current].serial_display()
-                MODE_LIST[mode_current].cpx_neopixel_display()
+                rwd_lines(sense_outlines)
+                sense_outlines = MODE_LIST[mode_current].serial_display()
+                MODE_LIST[mode_current].cpx_neopixel_display(pixels)
         else:
             pixels[:] = [0x000000] * len(pixels)
             if disp_cycle:
-                rwd_lines(3)
-                print("Press B to start recording\n\n")
+                rwd_lines(sense_outlines)
+                print("Press B to start recording")
+                sense_outlines = 1
