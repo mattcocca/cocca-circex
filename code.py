@@ -96,17 +96,6 @@ class TempSensor(Sensor):
                                                 fahrenheit))
         return 2
 
-    def cpx_neopixel_display(self, pixels):
-        pass
-        # Any more code is causing memory allocation errors :(
-#        pixels[:] = [0x000000] * len(pixels)
-#        on_leds = self.celsius / (50/12)
-#        ndx = 0
-#        while ndx < len(pixels):
-#            ndx = ndx + 1
-#            if on_leds > ndx:
-#                pixels[ndx] =  0xFFFFFF
- 
     def cpx_neopixel_indicator(self, pixels):
         pixels[:] = [0x000000] * len(pixels)
         pixels[8] = 0xFFFFFF
@@ -133,6 +122,9 @@ class AccelSensor(Sensor):
     def cpx_neopixel_display(self, pixels):
         """atan2 eqn from figure 7 of
            https://www.digikey.com/en/articles/using-an-accelerometer-for-inclination-sensing"""
+        if self.z > .92:
+            pixels[:] = [0x000000] * len(pixels)
+            return
         point_dir = (math.atan2(self.x, self.y)-math.pi)*-1.91
         pixels.brightness = round((1-abs(self.z))*.05, 2)+.01
         if 0.5 < point_dir < 5.49:
@@ -149,10 +141,8 @@ class AccelSensor(Sensor):
     def cpx_neopixel_indicator(self,pixels):
         pixels[:] = [0x000000] * len(pixels)
         pixels[0] = 0xFFFFFF
-        pixels[2] = 0xFFFFFF
         pixels[4] = 0xFFFFFF
         pixels[5] = 0xFFFFFF
-        pixels[7] = 0xFFFFFF
         pixels[9] = 0xFFFFFF
 
 def rwd_lines(lines):
