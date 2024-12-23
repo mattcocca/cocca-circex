@@ -19,5 +19,5 @@ fi;
 echo "Writing code.py to ${TARGET_DIR}"
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-cp ${SCRIPT_DIR}/code.py $TARGET_DIR
+cp ${PWD}/code.py $TARGET_DIR
 screen ${TARGET_DEV} 115200
