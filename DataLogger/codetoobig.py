@@ -56,6 +56,50 @@ class Sensor:
     def cpx_neopixel_indicator(self, pixels):
         pixels[:] = [0x000000] * len(pixels)
     
+
+class LightSensor(Sensor):
+    def __init__(self):
+        self.name = "LIGHT"
+        self.light = analogio.AnalogIn(board.A8)
+        self.value = 0
+
+    def read_sensor(self):
+        self.value = self.light.value
+
+    def serial_display(self):
+        print(str(self.value))
+        return 1
+
+    def cpx_neopixel_indicator(self,pixels):
+        pixels[:] = [0x000000] * len(pixels)
+        pixels[1] = 0xFFFFFF
+
+class TempSensor(Sensor):
+    def __init__(self):
+        self.name = "TEMP"
+        pin = board.TEMPERATURE
+        resistor = 10000
+        resistance = 10000
+        nominal_temp = 25
+        b_coefficient = 3950
+
+        self.thermistor = adafruit_thermistor.Thermistor(
+            pin, resistor, resistance, nominal_temp, b_coefficient
+        )
+
+    def read_sensor(self):
+        self.celsius = self.thermistor.temperature
+
+    def serial_display(self):
+        fahrenheit = (self.celsius * 9 / 5) + 32
+        print("{: .3f} *C\n{: .3f} *F".format(self.celsius,
+                                                fahrenheit))
+        return 2
+
+    def cpx_neopixel_indicator(self, pixels):
+        pixels[:] = [0x000000] * len(pixels)
+        pixels[8] = 0xFFFFFF
+
 class AccelSensor(Sensor):
     def __init__(self):
         self.name = "ACCEL"
@@ -110,7 +154,10 @@ if __name__ == "__main__":
     pixels = NeoPixel(board.NEOPIXEL, 10, brightness=.01)
 
     MODE_LIST = [
+                TempSensor(),
+                LightSensor(),
                 AccelSensor(),
+                Sensor("SOUND")
                 ]
 
     mode_current = 0
