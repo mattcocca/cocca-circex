@@ -1,0 +1,86 @@
+#!/bin/bash
+
+# Usage info
+show_help() {
+cat << EOF
+Usage: ${0##*/} [-hc] ...
+Load circuit python files from dev directories to board, compile libraries if necessary and open serial terminal
+
+    -h          display this help and exit
+    -i INPROJ   directory to use as project input (PWD if not specified)
+    -c          recompile library files in proj/lib if found
+    -s /dev/... serial device to view after copy 
+    -t DEVDIR   device directory to write project to (/Volumes/CIRCUITPY
+                if not specified)
+EOF
+}
+
+
+# Initialize our own variables:
+compile=false
+input_proj=""
+target_device_directory=""
+serial_device=""
+
+
+OPTIND=1
+# Resetting OPTIND is necessary if getopts was used previously in the script.
+# It is a good idea to make OPTIND local if you process options in a function.
+
+while getopts hi:ct:s: opt; do
+    case $opt in
+        h)
+            show_help
+            exit 0
+            ;;
+        i)  input_proj=$OPTARG
+            ;;
+        c)  compile=true
+            ;;
+        t)  target_device_directory=$OPTARG
+            ;;
+        s)  serial_device=$OPTARG
+            ;;
+        *)
+            show_help >&2
+            exit 1
+            ;;
+    esac
+done
+shift "$((OPTIND-1))"   # Discard the options and sentinel --
+
+if [ ${target_device_directory} ]; then
+    echo "Target device directory specified as ${target_device_directory}"
+else
+    echo "No target device directory specified, attempting to use /Volumes/CIRCUITPY"
+    exit 1
+fi;
+
+if [ ${input_proj} ]; then
+    echo "Input project specified as ${input_proj}"
+else
+    input_proj=${PWD}
+    echo "Input project not specified, attempting to use ${PWD}"
+fi;
+
+if [ -d ${input_proj}/lib ]; then
+    echo "lib directory detected in project, copying to target"
+    # compile libs if ${compile}=true
+    cp ${input_proj}/lib/*.mpy ${target_device_directory}/lib/
+else
+    echo "No libraries detected, skipping library copy"
+fi;
+
+if [ ${input_proj}/code.py ]; then
+    echo "Copying ${input_proj}code.py to ${target_device_directory}"
+    cp ${input_proj}code.py ${target_device_directory}
+else
+    echo "No code.py file detected, exitting..."
+fi;
+
+if [ ${serial_device} ]; then
+    screen ${serial_device} 115200
+fi;
+#SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+#cp ${PWD}/code.py $TARGET_DIR
+#screen ${TARGET_DEV} 115200
