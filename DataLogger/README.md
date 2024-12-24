@@ -27,3 +27,10 @@ Copy _only_ the `dataloggerlib.mpy` file into the microcontroller `lib` director
 > this will likely result in a `MemoryError`
 
 For macOS/linux/WSL the `circex-py-build` script in the `build` directory can be used to compile the libraries, copy resulting code to the microcontroller and open the serial monitor.
+
+## Future Feature Additions
+- Complete implementation of all sensors and displays
+- Recording data to flash storage
+- Recording from more than one sensor at a time
+- Configurable recording frequency
+- Low frequency/low power "timelapse" recording mode
