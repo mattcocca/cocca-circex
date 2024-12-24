@@ -14,6 +14,7 @@ Each project should have it's own directory at the top level of the repository w
 Tools and scripts that are useful for development can be stored in the `build` directory
 
 **Example file tree**  
+```
 cocca-circex  
 ├─ README.md (the file you're reading right now)  
 ├─ build  
@@ -25,3 +26,4 @@ cocca-circex
    └── lib  
        ├── library_code.py  
        └── library_code.mpy  
+```
