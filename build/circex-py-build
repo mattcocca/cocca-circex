@@ -53,13 +53,13 @@ if [ ${target_device_directory} ]; then
     echo "Target device directory specified as ${target_device_directory}"
 else
     echo "No target device directory specified, attempting to use /Volumes/CIRCUITPY"
-    exit 1
+    target_device_directory=/Volumes/CIRCUITPY
 fi;
 
 if [ ${input_proj} ]; then
     echo "Input project specified as ${input_proj}"
 else
-    input_proj=${PWD}
+    input_proj=${PWD}/
     echo "Input project not specified, attempting to use ${PWD}"
 fi;
 
