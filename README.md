@@ -2,7 +2,7 @@
 
 Tinkering with an Adafruit **Circ**uit Playground **Ex**press board
 
-This repo contains multiple projects which can be run on the Adafruit Circuit Playground Express board, mostly utilizing CircuitPython, mostly for learning about the CircuitPython/Micropython as well as hopefully having some fun!
+This repo contains multiple projects which can be run on the Adafruit Circuit Playground Express board, mostly utilizing and for learning about CircuitPython/Micropython, as well as hopefully having some fun!
 
 ## Project List
 **DataLogger** - Read from all the onboard sensors, and maybe eventually log them to a file
