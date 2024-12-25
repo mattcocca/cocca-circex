@@ -2,6 +2,8 @@
 
 Tinkering with an Adafruit **Circ**uit Playground **Ex**press board
 
+![Spinning CPX Board](/assets/cpx-spin.gif)
+
 This repo contains multiple projects which can be run on the Adafruit Circuit Playground Express board, mostly utilizing and for learning about CircuitPython/Micropython, as well as hopefully having some fun!
 
 ## Project List
