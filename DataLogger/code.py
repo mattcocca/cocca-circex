@@ -1,6 +1,3 @@
-import gc
-gc.collect()
-print(gc.mem_free())
 import board
 import countio
 import adafruit_thermistor
@@ -9,9 +6,6 @@ import time
 import adafruit_lis3dh
 import busio
 import math
-
-gc.collect()
-print(gc.mem_free())
 
 from neopixel import NeoPixel
 from digitalio import DigitalInOut, Direction, Pull
@@ -76,5 +70,3 @@ if __name__ == "__main__":
                 rwd_lines(sense_outlines)
                 print("Press B to start recording")
                 sense_outlines = 1 
-        gc.collect()
-        print(gc.mem_free())
